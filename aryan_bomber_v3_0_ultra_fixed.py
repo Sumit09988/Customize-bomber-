@@ -811,6 +811,27 @@ async def protect_view(callback: CallbackQuery, state: FSMContext):
         ])
     )
 
+@dp.message(AdminStates.add_protect)
+async def process_add_protect(message: Message, state: FSMContext):
+    """Process adding protected number"""
+    number = message.text.strip()
+    
+    if not re.match(r"^\+?[0-9]{10,15}$", number):
+        await message.reply("❌ Invalid number format. Use: +919876543210")
+        return
+        
+    data = await db.get_data()
+    if number in data.get("protected_numbers", []):
+        await message.reply("❌ Number already protected.")
+        return
+        
+    data["protected_numbers"].append(number)
+    await db.update_data(data)
+    await db.log_activity("protect_add", f"Added protected number: {number}")
+    
+    await message.reply(f"✅ Number {number} is now protected.")
+    await state.clear()
+
 # ================================
 # SMS SEND FUNCTIONS
 # ================================
@@ -1933,10 +1954,39 @@ async def process_remove_admin(message: Message, state: FSMContext):
     await state.clear()
 
 # ================================
+# WEB SERVER FOR RAILWAY
+# ================================
+
+from flask import Flask, render_template, send_file, jsonify, request
+import threading
+
+flask_app = Flask(__name__)
+
+@flask_app.route('/')
+def index():
+    return "✅ SMS Blast Bot v3.0 ULTRA is running!"
+
+@flask_app.route('/health')
+def health():
+    data = asyncio.run(db.get_data())
+    return jsonify({
+        "status": "online",
+        "users": len(data.get('users', {})),
+        "devices": len(db.get_cache().get('devices', [])),
+        "timestamp": int(time.time())
+    })
+
+def run_web():
+    flask_app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+
+# ================================
 # MAIN
 # ================================
 
 async def main():
+    # Start web server in background
+    threading.Thread(target=run_web, daemon=True).start()
+    
     # Start background scanner
     asyncio.create_task(device_scanner())
     
