@@ -55,7 +55,7 @@ SUPER_ADMIN_LINK = "tg://user?id=" + str(MAIN_OWNER)
 
 SUPER_ADMINS = [7515864015]  # Updated
 
-BOT_TOKEN = "84637663:AAGOmzcYi-eeZrYajDFD_O5O0JR4BRRqcX8"  # Updated Token
+BOT_TOKEN = "8463766338:AAHYrhZhnuVzznLXNyesM_2w736yibqUc6Q"  # Updated Token
 _DATA_FILE = "blast_data.json"
 _VERSION = "v3.1-ULTRA"
 _PROGRESS_UPDATE_INTERVAL = 1.0
