@@ -15,9 +15,9 @@ from datetime import datetime
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #  ⚙️  CONFIG
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-BOT_TOKEN = '8542210816:AAEdwjzLjXcVjIOfk_HrmuAPzHDYgYf4HGM'
-OWNER_ID  = 7949539794
-BRAND     = "@Aryan_babu99"
+BOT_TOKEN = '8708516791:AAHW7vvX1A1OLisKUhSyrAKROSG1kLZgGvA'
+OWNER_ID  = 7515864015
+BRAND     = "@T4HKR"
 
 # Storage
 try:
