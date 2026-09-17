@@ -1,3 +1,7 @@
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# INSTALL: pip install pyrogram tgcrypto anthropic yt-dlp
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 import asyncio
 import json
 import os
@@ -9,9 +13,6 @@ from pyrogram.types import (
     InlineKeyboardButton,
     MessageEntity
 )
-from pytgcalls import PyTgCalls
-from pytgcalls.types import MediaStream, AudioQuality
-import yt_dlp
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 #   ⚡ SUMIT BOTS @T4HKR
@@ -48,7 +49,7 @@ EMOJI_IDS = [
 PLACEHOLDER = "\U000E0020"
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# CONFIG SYSTEM
+# CONFIG
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 def load_config():
     if not os.path.exists(CONFIG_FILE):
@@ -59,15 +60,6 @@ def load_config():
 def save_config(data: dict):
     with open(CONFIG_FILE, "w") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-
-def get_api_id():
-    return load_config().get("api_id")
-
-def get_api_hash():
-    return load_config().get("api_hash")
-
-def get_sessions():
-    return load_config().get("sessions", [])
 
 def add_session(session: str):
     cfg = load_config()
@@ -133,14 +125,23 @@ async def send_premium(
 
     full_text = placeholders + "\n" + text
 
-    await client.send_message(
-        chat_id=chat_id,
-        text=full_text,
-        entities=entities,
-        reply_markup=reply_markup,
-        reply_to_message_id=reply_to_message_id,
-        disable_web_page_preview=True
-    )
+    try:
+        await client.send_message(
+            chat_id=chat_id,
+            text=full_text,
+            entities=entities,
+            reply_markup=reply_markup,
+            reply_to_message_id=reply_to_message_id,
+            disable_web_page_preview=True
+        )
+    except Exception:
+        await client.send_message(
+            chat_id=chat_id,
+            text=text,
+            reply_markup=reply_markup,
+            reply_to_message_id=reply_to_message_id,
+            disable_web_page_preview=True
+        )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # AI CLIENT
@@ -158,72 +159,7 @@ bot = Client(
     api_hash="b18441a1ff607e10a989891a5462e627"
 )
 
-userbots       = []
-pytgcalls_list = []
-group_ub_map   = {}
-music_queue    = {}
-setup_state    = {}
-
-def get_vc(chat_id: int):
-    if not pytgcalls_list:
-        return None
-    if chat_id not in group_ub_map:
-        idx = len(group_ub_map) % len(pytgcalls_list)
-        group_ub_map[chat_id] = idx
-    return pytgcalls_list[group_ub_map[chat_id]]
-
-def get_audio(query: str):
-    opts = {
-        "format": "bestaudio/best",
-        "quiet": True,
-        "noplaylist": True,
-    }
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        if query.startswith("http"):
-            info = ydl.extract_info(query, download=False)
-        else:
-            info = ydl.extract_info(f"ytsearch:{query}", download=False)
-            info = info["entries"][0]
-        return info["url"], info.get("title", "Unknown")
-
-async def reload_userbots():
-    global userbots, pytgcalls_list, group_ub_map
-
-    api_id   = get_api_id()
-    api_hash = get_api_hash()
-    sessions = get_sessions()
-
-    if not api_id or not api_hash:
-        return False
-
-    for ub in userbots:
-        try:
-            await ub.stop()
-        except:
-            pass
-
-    userbots       = []
-    pytgcalls_list = []
-    group_ub_map   = {}
-
-    for i, session in enumerate(sessions):
-        try:
-            ub = Client(
-                f"userbot_{i+1}",
-                api_id=int(api_id),
-                api_hash=api_hash,
-                session_string=session
-            )
-            vc = PyTgCalls(ub)
-            await ub.start()
-            await vc.start()
-            userbots.append(ub)
-            pytgcalls_list.append(vc)
-            print(f"Userbot {i+1} chalu!")
-        except Exception as e:
-            print(f"Userbot {i+1} Error: {e}")
-
-    return True
+setup_state = {}
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # AUTO GROUP SAVE / REMOVE
@@ -272,26 +208,19 @@ async def start(client: Client, message: Message):
         f"API ID: {api_set}\n"
         f"API HASH: {hash_set}\n"
         f"Sessions: {ub_count}\n\n"
-        f"**Setup:**\n"
+        f"**Setup Commands:**\n"
         f"/setapi — API ID set karo\n"
         f"/sethash — API HASH set karo\n"
         f"/addsession — Session add karo\n"
-        f"/delsession — Session hatao\n"
-        f"/sessions — Sessions dekho\n"
-        f"/reloadub — Userbots reload karo\n\n"
-        f"**Music:**\n"
-        f"/play song — Gaana bajao\n"
-        f"/skip — Next\n"
-        f"/stop — Band karo\n"
-        f"/queue — Queue\n"
-        f"/np — Ab kya chal raha\n\n"
+        f"/delsession 1 — Session hatao\n"
+        f"/sessions — Sessions list\n\n"
         f"**Broadcast:**\n"
-        f"/broadcast — Turant\n"
-        f"/tbroadcast 30m msg — Timer\n\n"
+        f"/broadcast — Turant sabko bhejo\n"
+        f"/tbroadcast 30m msg — Timer ke saath\n\n"
         f"**Admin:**\n"
-        f"/admincheck — Kahan admin\n"
-        f"/groups — Total groups\n"
-        f"/ubstatus — Userbot status",
+        f"/admincheck — Kahan admin hoon\n"
+        f"/groups — Total groups list\n\n"
+        f"**Group mein @mention karke baat karo!**",
         emoji_ids=EMOJI_IDS[:6],
         reply_markup=InlineKeyboardMarkup([
             [
@@ -299,8 +228,8 @@ async def start(client: Client, message: Message):
                 InlineKeyboardButton("👥 Groups", callback_data="groups")
             ],
             [
-                InlineKeyboardButton("🤖 UB Status", callback_data="ubstatus"),
-                InlineKeyboardButton("📢 Channel", url="https://t.me/T4HKR")
+                InlineKeyboardButton("📢 Channel", url="https://t.me/T4HKR"),
+                InlineKeyboardButton("👤 Owner", url="tg://user?id=7515864015")
             ]
         ])
     )
@@ -313,9 +242,9 @@ async def set_api(client: Client, message: Message):
     setup_state[OWNER_ID] = "waiting_api_id"
     await message.reply(
         f"**API ID bhej bhai:**\n\n"
-        f"my.telegram.org pe ja\n"
-        f"Login → API Development Tools\n"
-        f"App ID copy karke yahan bhej\n\n"
+        f"my.telegram.org → Login\n"
+        f"→ API Development Tools\n"
+        f"→ App ID copy karo yahan bhejo\n\n"
         f"Cancel: /cancel"
     )
 
@@ -327,9 +256,9 @@ async def set_hash(client: Client, message: Message):
     setup_state[OWNER_ID] = "waiting_api_hash"
     await message.reply(
         f"**API HASH bhej bhai:**\n\n"
-        f"my.telegram.org pe ja\n"
-        f"Login → API Development Tools\n"
-        f"App hash copy karke yahan bhej\n\n"
+        f"my.telegram.org → Login\n"
+        f"→ API Development Tools\n"
+        f"→ App hash copy karo yahan bhejo\n\n"
         f"Cancel: /cancel"
     )
 
@@ -348,20 +277,22 @@ async def add_session_cmd(client: Client, message: Message):
     setup_state[OWNER_ID] = "waiting_session"
     await message.reply(
         f"**Session String bhej bhai**\n\n"
-        f"Generate karne ke liye apne PC pe chala:\n\n"
+        f"Apne PC pe yeh chala:\n\n"
+        f"```\npip install pyrogram tgcrypto\n```\n\n"
+        f"Phir yeh Python script:\n\n"
         f"```python\n"
         f"from pyrogram import Client\n"
         f"import asyncio\n\n"
         f"async def main():\n"
         f"    async with Client(\n"
-        f"        'session',\n"
+        f"        'mysession',\n"
         f"        api_id={cfg['api_id']},\n"
         f"        api_hash='{cfg['api_hash']}'\n"
         f"    ) as app:\n"
         f"        print(await app.export_session_string())\n\n"
         f"asyncio.run(main())\n"
         f"```\n\n"
-        f"BQA... wali string yahan bhej\n\n"
+        f"BQA... se start hone wali string yahan bhej\n\n"
         f"Cancel: /cancel"
     )
 
@@ -384,7 +315,7 @@ async def del_session_cmd(client: Client, message: Message):
             remove_session(idx)
             await message.reply(f"Session {args[1]} hata diya!")
         except:
-            await message.reply("Number sahi nahi hai bhai.")
+            await message.reply("Number sahi nahi bhai.")
     else:
         text = "**Konsa hatana hai?**\n\n"
         for i, s in enumerate(sessions, 1):
@@ -408,24 +339,6 @@ async def sessions_list(client: Client, message: Message):
     await send_premium(client, message.chat.id, text, emoji_ids=EMOJI_IDS[:3])
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# RELOAD USERBOTS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("reloadub") & filters.private & filters.user(OWNER_ID))
-async def reload_ub(client: Client, message: Message):
-    msg    = await message.reply("Userbots reload ho rahe hain...")
-    result = await reload_userbots()
-    if result:
-        await msg.edit(
-            f"Userbots reload ho gaye!\n"
-            f"Total: {len(userbots)} userbots active\n\n{BRAND}"
-        )
-    else:
-        await msg.edit(
-            f"Pehle API ID aur HASH set kar!\n"
-            f"/setapi → /sethash → /reloadub"
-        )
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CANCEL
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @bot.on_message(filters.command("cancel") & filters.private & filters.user(OWNER_ID))
@@ -441,15 +354,15 @@ async def cancel(client: Client, message: Message):
     filters.user(OWNER_ID) &
     ~filters.command([
         "start","setapi","sethash","addsession",
-        "delsession","sessions","reloadub","cancel",
-        "broadcast","tbroadcast","admincheck",
-        "groups","ubstatus"
+        "delsession","sessions","cancel",
+        "broadcast","tbroadcast","admincheck","groups"
     ])
 )
 async def owner_input_handler(client: Client, message: Message):
     user_text = message.text or ""
     state     = setup_state.get(OWNER_ID)
 
+    # API ID
     if state == "waiting_api_id":
         try:
             api_id = int(user_text.strip())
@@ -464,20 +377,20 @@ async def owner_input_handler(client: Client, message: Message):
             await message.reply("Sirf number bhej bc! API ID number hota hai.")
         return
 
+    # API HASH
     if state == "waiting_api_hash":
         api_hash = user_text.strip()
         if len(api_hash) < 10:
-            await message.reply("Yeh sahi nahi lagta. Dobara check kar.")
+            await message.reply("Yeh sahi nahi lagta bhai. Dobara check kar.")
             return
         cfg = load_config()
         cfg["api_hash"] = api_hash
         save_config(cfg)
         setup_state.pop(OWNER_ID, None)
-        await message.reply(
-            f"API HASH set!\n\nAb /addsession maar."
-        )
+        await message.reply(f"API HASH set!\n\nAb /addsession maar.")
         return
 
+    # SESSION
     if state == "waiting_session":
         session = user_text.strip()
         if not session.startswith("BQA"):
@@ -491,14 +404,12 @@ async def owner_input_handler(client: Client, message: Message):
         setup_state.pop(OWNER_ID, None)
         cfg = load_config()
         await message.reply(
-            f"Session add!\n"
-            f"Total: {len(cfg['sessions'])}\n\n"
-            f"Aur add: /addsession\n"
-            f"Activate: /reloadub"
+            f"Session add!\nTotal: {len(cfg['sessions'])}\n\n"
+            f"Aur add: /addsession"
         )
         return
 
-    # Normal friendly chat
+    # FRIENDLY CHAT
     if not user_text:
         await message.reply("bc kuch toh bol")
         return
@@ -536,13 +447,12 @@ async def owner_input_handler(client: Client, message: Message):
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # GROUP CHAT — GALI WALA DOST
+# Sirf @mention ya reply pe
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 @bot.on_message(
     filters.group &
     ~filters.command([
-        "play","skip","stop","queue","np",
-        "broadcast","tbroadcast","admincheck",
-        "groups","ubstatus"
+        "broadcast","tbroadcast","admincheck","groups"
     ])
 )
 async def group_chat(client: Client, message: Message):
@@ -596,180 +506,6 @@ async def group_chat(client: Client, message: Message):
         await message.reply(reply_text)
     except:
         await message.reply("bc error aa gaya")
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MUSIC — PLAY
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("play") & filters.group)
-async def play(client: Client, message: Message):
-    chat_id = message.chat.id
-
-    if not pytgcalls_list:
-        await message.reply(
-            f"Pehle setup kar!\n"
-            f"DM mein /setapi → /sethash → /addsession → /reloadub"
-        )
-        return
-
-    if len(message.command) < 2:
-        await send_premium(
-            client, chat_id,
-            f"bc song ka naam toh de!\nExample: /play Kesariya\n\n{BRAND}",
-            emoji_ids=[EMOJI_IDS[2]],
-            reply_to_message_id=message.id
-        )
-        return
-
-    query = " ".join(message.command[1:])
-    await send_premium(
-        client, chat_id,
-        f"Dhundh raha hoon: {query}",
-        emoji_ids=[EMOJI_IDS[7]],
-        reply_to_message_id=message.id
-    )
-
-    try:
-        url, title = get_audio(query)
-    except Exception as e:
-        await message.reply(f"Nahi mila!\nError: `{e}`")
-        return
-
-    if chat_id not in music_queue:
-        music_queue[chat_id] = []
-    music_queue[chat_id].append({"url": url, "title": title})
-
-    vc = get_vc(chat_id)
-
-    try:
-        await vc.join_group_call(
-            chat_id,
-            MediaStream(url, audio_quality=AudioQuality.HIGH)
-        )
-        await send_premium(
-            client, chat_id,
-            f"**Ab chal raha hai:**\n{title}\n\n{BRAND}",
-            emoji_ids=EMOJI_IDS[:4],
-            reply_markup=InlineKeyboardMarkup([
-                [
-                    InlineKeyboardButton("⏭ Skip", callback_data=f"skip_{chat_id}"),
-                    InlineKeyboardButton("⏹ Stop", callback_data=f"stop_{chat_id}")
-                ],
-                [
-                    InlineKeyboardButton("📋 Queue", callback_data=f"queue_{chat_id}")
-                ]
-            ])
-        )
-    except Exception:
-        await send_premium(
-            client, chat_id,
-            f"**Queue mein add:**\n{title}\n\n{BRAND}",
-            emoji_ids=[EMOJI_IDS[5]]
-        )
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MUSIC — SKIP
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("skip") & filters.group)
-async def skip(client: Client, message: Message):
-    chat_id = message.chat.id
-    vc      = get_vc(chat_id)
-    if not vc:
-        await message.reply("Koi userbot nahi! /reloadub maar DM mein.")
-        return
-    try:
-        if music_queue.get(chat_id):
-            music_queue[chat_id].pop(0)
-        if music_queue.get(chat_id):
-            nxt = music_queue[chat_id][0]
-            await vc.change_stream(
-                chat_id,
-                MediaStream(nxt["url"], audio_quality=AudioQuality.HIGH)
-            )
-            await send_premium(
-                client, chat_id,
-                f"**Skip! Ab:**\n{nxt['title']}\n\n{BRAND}",
-                emoji_ids=[EMOJI_IDS[3]],
-                reply_to_message_id=message.id
-            )
-        else:
-            await vc.leave_group_call(chat_id)
-            await send_premium(
-                client, chat_id,
-                f"Queue khatam! Bot nikla.\n\n{BRAND}",
-                emoji_ids=[EMOJI_IDS[1]],
-                reply_to_message_id=message.id
-            )
-    except Exception as e:
-        await message.reply(f"Error: `{e}`")
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MUSIC — STOP
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("stop") & filters.group)
-async def stop(client: Client, message: Message):
-    chat_id = message.chat.id
-    vc      = get_vc(chat_id)
-    if not vc:
-        await message.reply("Koi userbot nahi!")
-        return
-    try:
-        music_queue[chat_id] = []
-        await vc.leave_group_call(chat_id)
-        await send_premium(
-            client, chat_id,
-            f"**Stop! Bot VC se nikla.**\n\n{BRAND}",
-            emoji_ids=[EMOJI_IDS[2]],
-            reply_to_message_id=message.id
-        )
-    except Exception as e:
-        await message.reply(f"Error: `{e}`")
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MUSIC — QUEUE
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("queue") & filters.group)
-async def queue_list(client: Client, message: Message):
-    chat_id = message.chat.id
-    q       = music_queue.get(chat_id, [])
-    if not q:
-        await send_premium(
-            client, chat_id,
-            f"Queue khaali!\n\n{BRAND}",
-            emoji_ids=[EMOJI_IDS[8]],
-            reply_to_message_id=message.id
-        )
-        return
-    text = f"**Queue ({len(q)} songs):**\n\n"
-    for i, t in enumerate(q, 1):
-        text += f"{i}. {t['title']}\n"
-    text += f"\n{BRAND}"
-    await send_premium(
-        client, chat_id, text,
-        emoji_ids=EMOJI_IDS[:3],
-        reply_to_message_id=message.id
-    )
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MUSIC — NOW PLAYING
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("np") & filters.group)
-async def now_playing(client: Client, message: Message):
-    chat_id = message.chat.id
-    q       = music_queue.get(chat_id, [])
-    if not q:
-        await send_premium(
-            client, chat_id,
-            f"Kuch nahi chal raha!\n\n{BRAND}",
-            emoji_ids=[EMOJI_IDS[4]],
-            reply_to_message_id=message.id
-        )
-        return
-    await send_premium(
-        client, chat_id,
-        f"**Ab chal raha hai:**\n{q[0]['title']}\n\n{BRAND}",
-        emoji_ids=EMOJI_IDS[:4],
-        reply_to_message_id=message.id
-    )
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # BROADCAST — TURANT
@@ -828,7 +564,7 @@ async def tbroadcast(client: Client, message: Message):
     args = message.command
     if len(args) < 3:
         await message.reply(
-            f"Format: /tbroadcast time message\n"
+            f"Format: /tbroadcast time message\n\n"
             f"/tbroadcast 30m Aaj offer!\n"
             f"/tbroadcast 2h Event!\n"
             f"/tbroadcast 1d Kal milte!\n\n{BRAND}"
@@ -848,7 +584,7 @@ async def tbroadcast(client: Client, message: Message):
         delay    = int(time_str[:-1]) * 86400
         readable = f"{time_str[:-1]} din baad"
     else:
-        await message.reply(f"Format galat! 30m 2h 1d\n\n{BRAND}")
+        await message.reply(f"Format galat! 30m 2h 1d use kar\n\n{BRAND}")
         return
 
     await send_premium(
@@ -903,28 +639,9 @@ async def groups_list(client: Client, message: Message):
         return
     text = f"**Total Groups: {len(groups)}**\n\n"
     for i, (chat_id, title) in enumerate(groups.items(), 1):
-        text += f"{i}. {title}\n{chat_id}\n\n"
+        text += f"{i}. {title}\n`{chat_id}`\n\n"
     text += BRAND
     await send_premium(client, message.chat.id, text, emoji_ids=EMOJI_IDS[:4])
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# USERBOT STATUS
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-@bot.on_message(filters.command("ubstatus") & filters.user(OWNER_ID))
-async def ub_status(client: Client, message: Message):
-    text = f"**Userbot Status:**\n\n"
-    if not userbots:
-        text += "Koi userbot nahi!\n/reloadub maar."
-    else:
-        for i, ub in enumerate(userbots, 1):
-            try:
-                me = await ub.get_me()
-                text += f"{i}. {me.first_name}"
-                text += f" @{me.username}\n" if me.username else "\n"
-            except:
-                text += f"{i}. Offline\n"
-    text += f"\n{BRAND}"
-    await send_premium(client, message.chat.id, text, emoji_ids=EMOJI_IDS[:3])
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # CALLBACKS
@@ -932,7 +649,6 @@ async def ub_status(client: Client, message: Message):
 @bot.on_callback_query()
 async def callbacks(client, cq):
     data = cq.data
-
     if data == "setup":
         cfg = load_config()
         await cq.answer(
@@ -944,49 +660,6 @@ async def callbacks(client, cq):
     elif data == "groups":
         g = load_groups()
         await cq.answer(f"Total {len(g)} groups!", show_alert=True)
-    elif data == "ubstatus":
-        await cq.answer(f"Total {len(userbots)} userbots active!", show_alert=True)
-    elif data.startswith("skip_"):
-        chat_id = int(data.split("_")[1])
-        vc      = get_vc(chat_id)
-        if not vc:
-            await cq.answer("Koi userbot nahi!", show_alert=True)
-            return
-        try:
-            if music_queue.get(chat_id):
-                music_queue[chat_id].pop(0)
-            if music_queue.get(chat_id):
-                nxt = music_queue[chat_id][0]
-                await vc.change_stream(
-                    chat_id,
-                    MediaStream(nxt["url"], audio_quality=AudioQuality.HIGH)
-                )
-                await cq.answer(f"Skip! Ab: {nxt['title'][:50]}", show_alert=True)
-            else:
-                await vc.leave_group_call(chat_id)
-                await cq.answer("Queue khatam!", show_alert=True)
-        except:
-            await cq.answer("Error!", show_alert=True)
-    elif data.startswith("stop_"):
-        chat_id = int(data.split("_")[1])
-        vc      = get_vc(chat_id)
-        if not vc:
-            await cq.answer("Koi userbot nahi!", show_alert=True)
-            return
-        try:
-            music_queue[chat_id] = []
-            await vc.leave_group_call(chat_id)
-            await cq.answer("Stop!", show_alert=True)
-        except:
-            await cq.answer("Error!", show_alert=True)
-    elif data.startswith("queue_"):
-        chat_id = int(data.split("_")[1])
-        q       = music_queue.get(chat_id, [])
-        if q:
-            text = "\n".join([f"{i}. {t['title'][:30]}" for i, t in enumerate(q, 1)])
-            await cq.answer(f"Queue:\n{text[:200]}", show_alert=True)
-        else:
-            await cq.answer("Queue khaali!", show_alert=True)
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # MAIN
@@ -995,23 +668,11 @@ async def main():
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("  ⚡ SUMIT BOTS @T4HKR")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
-    cfg = load_config()
-    if cfg.get("api_id") and cfg.get("api_hash") and cfg.get("sessions"):
-        print("Config mili — userbots load ho rahe hain...")
-        await reload_userbots()
-        print(f"Total userbots: {len(userbots)}")
-    else:
-        print("Config nahi — bot se setup karo!")
-        print("DM mein /start maar")
-
     await bot.start()
     me = await bot.get_me()
     print(f"Bot: @{me.username}")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
     print("  Sab Chalu! 6767")
     print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-
     await asyncio.get_event_loop().run_forever()
 
 asyncio.run(main())
