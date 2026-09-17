@@ -664,15 +664,8 @@ async def callbacks(client, cq):
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # MAIN
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async def main():
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    print("  ⚡ SUMIT BOTS @T4HKR")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    await bot.start()
-    me = await bot.get_me()
-    print(f"Bot: @{me.username}")
-    print("  Sab Chalu! 6767")
-    print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
-    await asyncio.get_event_loop().run_forever()
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+print("  ⚡ SUMIT BOTS @T4HKR")
+print("━━━━━━━━━━━━━━━━━━━━━━━━━━━")
 
-asyncio.run(main())
+bot.run()
